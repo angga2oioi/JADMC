@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>JADMC | Connection Manager</title>
+  <meta name="description" content="">
+  <meta name="author" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="plugins/vue/vue.min.js"></script>
+</head>
+  <body  >
+    <div class="container" id="jadmc-app" :key="componentKey">
+      <div class="row">
+        <div class="twelve columns">
+            <div class="full-height relative">
+                <div class="v-center" id="connectionListWindow">
+                    <table class="full-width" >
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Host:Port</th>
+                                <th>Network</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody  >
+                            <tr v-for="c in data.configList" >
+                                <td>{{c.configName}}</td>
+                                <td>{{c.host}}:{{c.port}}</td>
+                                <td>{{c.network}}</td>
+                                <td>
+                                    <button class="button small" v-bind:data-args="c.id" data-action-click="connection-connectNow"  data-tooltip="Connect"><i class="icon icon-database"></i></button>
+                                    <button class="button small" v-bind:data-args="c.id" data-action-click="connection-editConnectionWindow"  data-tooltip="Edit Connection" ><i class="icon icon-pencil"></i></button>
+                                    <button class="button small" v-bind:data-args="c.id" data-action-click="connection-removeConfig"  data-tooltip="Remove Connection"><i class="icon icon-trash"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <button class="button" data-action-click="connection-newConnectionWindow" >New Connection</button>
+                </div>
+                <div class="v-center form hidden margin-top-50 margin-bottom-50" id="connectionEditWindow">
+                  <div class="form-group show-edit" v-if="data.activeConfig.id">
+                    <label class="control-label">
+                       Configuration Name 
+                    </label>
+                    <input v-model="data.activeConfig.configName" class="form-control" type="text"/>
+                    <input v-model="data.activeConfig.id" type="hidden"/>
+                  </div>
+                  <div class="form-group">
+                    <label class="control-label">
+                        Network Type 
+                    </label>
+                      <select v-model="data.activeConfig.network" class="form-control" >
+                        <option selected disabled>Select Network Type</option>
+                        <option value="mysql">MySQL</option>
+                      </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="control-label">
+                      Hostname / IP
+                    </label>
+                    <input v-model="data.activeConfig.host" class="form-control" type="text"/>
+                  </div>
+                  <div class="form-group">
+                    <label class="control-label">
+                      Port
+                    </label>
+                    <input v-model="data.activeConfig.port" class="form-control" type="number"/>
+                  </div>
+                  <div class="form-group">
+                      <label class="control-label">
+                        Username
+                      </label>
+                      <input v-model="data.activeConfig.username" class="form-control" type="text"/>
+                  </div>
+                  <div class="form-group">
+                    <label class="control-label">
+                      Password
+                    </label>
+                    <input v-model="data.activeConfig.password" type="password" class="form-control"/>
+                  </div>
+                  <div class="form-group">
+                    <button class="button " v-if="data.activeConfig.id===undefined"data-action-click="connection-saveAndConnect" >Save & Connect</button>
+                    <button class="button " v-if="data.activeConfig.id===undefined" data-action-click="connection-quickConnect" >Quick Connect</button>
+                    <button class="button " v-if="data.activeConfig.id" data-action-click="connection-updateConfig" >Save Changes</button>
+                    <button class="button" data-action-click="connection-backToConnectionManagerWindow" >Cancel</button>
+                  </div>
+    
+                </div>
+        </div>
+      </div>
+    </div>
+    <div class="overlay hidden full-height full-width">
+        <div class="v-center align-center"><h1>LOADING</h1></div>
+    </div>
+    <script src="js/index.js"></script>
+  </body>
+</html>

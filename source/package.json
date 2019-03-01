@@ -1,0 +1,19 @@
+{
+  "name": "jadmc",
+  "version": "1.0.0",
+  "description": "just another database management client",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "electron ."
+  },
+  "author": "angga2oioi",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^4.0.5"
+  },
+  "dependencies": {
+    "electron-prompt": "^1.3.0",
+    "mysql": "^2.16.0"
+  }
+}
