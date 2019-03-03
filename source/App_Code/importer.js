@@ -1,8 +1,15 @@
 const fo = require("./fo");
+const main = require("./main");
 const importer = ()=>{
 
+    
     const table= (args,cb)=>{
-        
+        let msgParam={
+            id:args.winId,
+            channel:'loading-notif',
+        }
+        msgParam.message="Open file";
+        main.emit(msgParam);
         fo.readFile(args.filePath[0],function (results) {
             if (results.error){
                 cb(results);
@@ -16,6 +23,12 @@ const importer = ()=>{
                     name:jsonTable.name,
                     column:jsonTable.column
                 };
+                let msgParam={
+                    id:args.winId,
+                    channel:'loading-notif',
+                }
+                msgParam.message="Creating table "+ jsonTable.name;
+                main.emit(msgParam);
                 
                 mod.createTable(args,(results)=>{
                     if (results.error){
@@ -24,6 +37,13 @@ const importer = ()=>{
                     }
                     args.data = jsonTable.data;
                     args.table = jsonTable.name;
+                    let msgParam={
+                        id:args.winId,
+                        channel:'loading-notif',
+                    }
+                    msgParam.message="Insert table " + jsonTable.name;
+                    main.emit(msgParam);
+                   
                     mod.insertMultiple(args,(results)=>{
                         cb(results);
                     })
@@ -36,7 +56,12 @@ const importer = ()=>{
         return;
     }
     const database= (args,cb)=>{
-        
+        let msgParam={
+            id:args.winId,
+            channel:'loading-notif',
+        }
+        msgParam.message="Open file";
+        main.emit(msgParam);
         fo.readFile(args.filePath[0], (results)=>{
             if (results.error){
                 cb(results);
@@ -47,6 +72,10 @@ const importer = ()=>{
                 let jsonTable = JSON.parse(results.data);
                 let mod = require("./"+ jsonTable.network);
                 args.name = jsonTable.name;
+                
+                msgParam.message="Create DB";
+                main.emit(msgParam);
+                
                 mod.createDb(args,(results)=>{
                     if(results.error){
                         cb(results);
@@ -65,6 +94,10 @@ const importer = ()=>{
                                 column:arr[idx].column
                             }
                         }
+                        
+                        msgParam.message="creating table " + arr[idx].name;
+                        main.emit(msgParam);
+
                         args.query = "USE "+ jsonTable.name;
                         mod.query(args,(results)=>{
                             
@@ -82,6 +115,10 @@ const importer = ()=>{
                                 }
                                 params.data = arr[idx].data;
                                 params.table = arr[idx].name;
+
+                                msgParam.message="Insert table " + arr[idx].name;
+                                main.emit(msgParam);
+
                                 mod.insertMultiple(params,(results)=>{
                                     if (results.error){
                                         cb2(results);

@@ -4,6 +4,8 @@ Just Another Database Management Client, created with [electronjs](http://electr
 
 ## TODO
  - Export and import from csv and sql format
+ - pagination for table browse & sql query results
+ - Export sql results to csv/json
  - add support for other sql database
  - make it pretty
 

@@ -76,9 +76,17 @@ const main = () => {
             cb({error:1,message:JSON.stringify(e)});
         }
     }
+    const emit =(args)=>{
+        let sel = arrWin.filter((e)=>{return e.id ===args.id})[0];
+        if(!sel){
+            return;
+        }
+        sel.webContents.send(args.channel , args);
+    }
     return{
         init:init,
         createWindow:createWindow,
+        emit:emit,
     }
 }
 module.exports=main();

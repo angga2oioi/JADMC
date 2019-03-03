@@ -39,12 +39,19 @@ let JADMC={
         if(customArgument){
             JADMC.execute(customArgument);
         }
+        ipcRenderer.on('loading-notif', (event, response) => {
+            document.getElementById("loading-notif").innerHTML=response.message;
+        })
 
     },
     emit:(args,cb)=>{
-        document.getElementsByClassName("overlay")[0].classList.remove("hidden")
+        document.getElementsByClassName("overlay")[0].classList.remove("hidden");
+        if(args.arg){
+            args.arg.winId = remote.getCurrentWindow().id;
+        }
         ipcRenderer.once(args.module+'-'+args.function+'-reply', (event, response) => {
-            document.getElementsByClassName("overlay")[0].classList.add("hidden")
+            document.getElementsByClassName("overlay")[0].classList.add("hidden");
+            document.getElementById("loading-notif").innerHTML="";
             cb(response);
         })
         ipcRenderer.send("command",args);

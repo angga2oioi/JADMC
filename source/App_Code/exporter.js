@@ -1,6 +1,7 @@
 const fo = require("./fo.js");
+const main = require("./main");
 const exporter = ()=>{
-
+    
     const parseDatabaseToJSON=(args,cb)=>{
         try{
             let jsonDatabase={
@@ -44,6 +45,12 @@ const exporter = ()=>{
         var params = {
             name:args.config.database,
         }
+        let msgParam={
+            id:args.winId,
+            channel:'loading-notif',
+        }
+        msgParam.message="List table";
+        main.emit(msgParam);
         mod.listTable(args,(results)=>{
             if(results.error){
                 cb(results);
@@ -55,12 +62,19 @@ const exporter = ()=>{
                     return;
                 }
                 args.config.table = tbl[idx].table;
+                msgParam.message="List data from " + args.config.table;
+                main.emit(msgParam);
+                
                 mod.browseTable(args,(results)=>{
                     if(results.error){
                         cb(results);
                         return;
                     }
                     tbl[idx].data= results.data;
+                    
+                    msgParam.message="List column from " + args.config.table;
+                    main.emit(msgParam);
+                    
                     mod.structureTable(args,(results)=>{
                         if(results.error){
                             cb(results);
@@ -93,7 +107,7 @@ const exporter = ()=>{
                     })
                     return;
                 }
-                cb({error:1,message:"invalid file type" + fType});
+                cb({error:1,message:"invalid file type " + fType});
                 
             })
             
@@ -134,12 +148,22 @@ const exporter = ()=>{
         var params = {
             name:args.config.table,
         }
+        let msgParam={
+            id:args.winId,
+            channel:'loading-notif',
+        }
+        msgParam.message="List data from " + params.name;
+        main.emit(msgParam);
+        
         mod.browseTable(args,(results)=>{
             if(results.error){
                 cb(results);
                 return;
             }
             params.data = results.data;
+            msgParam.message="List column" + params.name;
+            main.emit(msgParam);
+           
             mod.structureTable(args,(results)=>{
                 if(results.error){
                     cb(results);
