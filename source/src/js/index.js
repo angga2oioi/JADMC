@@ -53,7 +53,7 @@ let JADMC={
         try{
             JADMC[args.module][args.function](args.arg);
         }catch(e){
-            alert("Fail to execute " + args.module + ":" + args.function + " - " + JSON.stringify(e));
+            alert("Fail to execute " + args.module + ":" + args.function + " - " + JSON.stringify(args));
         }
     },
     element:{
@@ -68,20 +68,38 @@ let JADMC={
                     e.appendChild(x);                 
                 }
             });
+
             //yep, i prefer use this rather than v-on:click simply because less attribute on the element
-            document.querySelectorAll("[data-action-click]").forEach((e)=>{
-                e.removeEventListener("click", JADMC.element.execute);
-                e.addEventListener("click",JADMC.element.execute);
+            document.querySelectorAll("[a-onclick]").forEach((e)=>{
+                e.removeEventListener("click", JADMC.element.event.click);
+                e.addEventListener("click",JADMC.element.event.click);
             });
-            document.querySelectorAll("[data-target]").forEach((e)=>{
-                e.removeEventListener("click", JADMC.element.switchView);
-                e.addEventListener("click",JADMC.element.switchView);
-            })
-            
+            document.querySelectorAll("[a-onkeyup]").forEach((e)=>{
+                e.removeEventListener("keyup", JADMC.element.event.keyup);
+                e.addEventListener("keyup",JADMC.element.event.keyup);
+            });
+        },
+        event:{
+            click:(e)=>{
+                var args={}
+                args.arg = e.currentTarget;
+                var c = args.arg.getAttribute('a-onclick');
+                args.module= c.split("-")[0];
+                args.function = c.split("-")[1];
+                JADMC.execute(args);
+            },
+            keyup:(e)=>{
+                var args={}
+                args.arg = e.currentTarget;
+                var c = args.arg.getAttribute('a-onkeyup');
+                args.module= c.split("-")[0];
+                args.function = c.split("-")[1];
+                JADMC.execute(args);
+            },
         },
         switchView:(e)=>{
-            var obj = e.currentTarget;
-            var tgt = document.getElementById(obj.getAttribute("data-target").replace("#",""));
+            var obj = e;
+            var tgt = document.getElementById(obj.getAttribute("data-args").replace("#",""));
             var c = obj.parentElement.children;
             for(i=0; i< c.length;i++){
                 c[i].classList.remove("button-primary")
@@ -95,18 +113,10 @@ let JADMC={
             tgt.classList.add("active");
 
         },
-        execute:(e)=>{
-            var args={}
-            args.arg = e.currentTarget;
-            var c = args.arg.getAttribute('data-action-click');
-            args.module= c.split("-")[0];
-            args.function = c.split("-")[1];
-            JADMC.execute(args);
-        },
         autoresize:(obj)=>{
             obj.style.height = "5px";
             obj.style.height = (obj.scrollHeight)+"px";
-        }
+        },
     },
     connection:{
         init:()=>{
@@ -274,6 +284,9 @@ let JADMC={
             if(vm.data.activeConfig.database){
                 delete vm.data.activeConfig.database;
             }
+            if(vm.data.activeConfig.table){
+                delete vm.data.activeConfig.table;
+            }
             vm.data.breadcrumbList=[
                 {
                     init:"server-init",
@@ -333,7 +346,7 @@ let JADMC={
                     function:"createDb",
                     arg:{
                         config:config,
-                        escape:[dbName],
+                        name:dbName,
                     }
                 },(response)=>{
                     if(!response){
@@ -402,6 +415,37 @@ let JADMC={
                 }
                 JADMC.server.listDb();
                 vm.$set(vm.data, 'serverQueryList', response.data);
+            });
+        },
+        importDatabase:()=>{
+            var config = vm.data.activeConfig;
+            if(!config || typeof config !="object"){
+                alert("no active configuration");
+                return;
+            }
+            dialog.showOpenDialog({type: 'info',message: 'Open Location'},(filePath)=>{
+                if(!filePath){
+                    return;
+                }
+                JADMC.emit({
+                    module:"importer",
+                    function:"database",
+                    arg:{
+                        config:config,
+                        filePath:filePath
+                    }
+                },(response)=>{
+                    if(!response){
+                        alert("fail to get response");
+                        return;
+                    }
+                    if(response.error){
+                        alert(response.message);
+                        return;
+                    }
+                    JADMC.server.listDb();
+                });
+                
             });
         }
     },
@@ -649,6 +693,65 @@ let JADMC={
                 })
             })
             
+        },
+        export:()=>{
+            var config = vm.data.activeConfig;
+            if(!config || typeof config !="object"){
+                alert("no active configuration");
+                return;
+            }
+            dialog.showSaveDialog({type: 'info',defaultPath:config.database,message: 'Save Location'},(filePath)=>{
+                if(!filePath){
+                    return;
+                }
+                var fileType = document.getElementById("database-export").querySelectorAll("[name]")[0].value;
+                if(!fileType || fileType==""){
+                    return;
+                }
+                JADMC.emit({
+                    module:"exporter",
+                    function:"database",
+                    arg:{
+                        config:config,
+                        fileType:fileType,
+                        filePath:filePath
+                    }
+                },(response)=>{
+                    if(!response){
+                        alert("fail to get response");
+                        return;
+                    }
+                    alert(response.message);
+                });
+                
+            }); 
+        },
+        importTable:()=>{
+            var config = vm.data.activeConfig;
+            if(!config || typeof config !="object"){
+                alert("no active configuration");
+                return;
+            }
+            dialog.showOpenDialog({type: 'info',message: 'Open Location'},(filePath)=>{
+                if(!filePath){
+                    return;
+                }
+                JADMC.emit({
+                    module:"importer",
+                    function:"table",
+                    arg:{
+                        config:config,
+                        filePath:filePath
+                    }
+                },(response)=>{
+                    if(!response){
+                        alert("fail to get response");
+                        return;
+                    }
+                    JADMC.database.listTable();
+                });
+                
+            });
         }
     },
     table:{
@@ -795,6 +898,39 @@ let JADMC={
                     return;
                 }
             })
-        }
+        },
+        export:()=>{
+            var config = vm.data.activeConfig;
+            if(!config || typeof config !="object"){
+                alert("no active configuration");
+                return;
+            }
+            dialog.showSaveDialog({type: 'info',defaultPath:config.table,message: 'Save Location'},(filePath)=>{
+                if(!filePath){
+                    return;
+                }
+                var fileType = document.getElementById("table-export").querySelectorAll("[name]")[0].value;
+                if(!fileType || fileType==""){
+                    return;
+                }
+                JADMC.emit({
+                    module:"exporter",
+                    function:"table",
+                    arg:{
+                        config:config,
+                        fileType:fileType,
+                        filePath:filePath
+                    }
+                },(response)=>{
+                    if(!response){
+                        alert("fail to get response");
+                        return;
+                    }
+                    alert(response.message);
+                });
+                
+            });
+        },
+        
     }
 }

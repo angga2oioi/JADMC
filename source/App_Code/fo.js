@@ -1,5 +1,6 @@
 var fs = require("fs");
-const cwd = process.cwd();
+const { app } = require('electron');
+const cwd = app.getPath("userData");
 const fpath = cwd +"/connection.json";
 const parameter = require("./helper/parameter.js");
 const string = require("./helper/string.js");
@@ -34,9 +35,9 @@ const  fo = () => {
             });
         });
     }
-    const loadAllConfig = (arg,cb) => {
-        if(typeof arg==="function"){
-            cb = arg;
+    const loadAllConfig = (args,cb) => {
+        if(typeof args==="function"){
+            cb = args;
         }
         if(!fs.existsSync(fpath)){
             cb({error:0,message:"no data",data:[]});
@@ -50,7 +51,7 @@ const  fo = () => {
             cb({error:0,message:"success",data:config});
         });
     }
-    const loadConfig = (arg,cb) => {
+    const loadConfig = (args,cb) => {
         loadAllConfig(function(response){
             if(response.error){
                 cb(response);
@@ -58,7 +59,7 @@ const  fo = () => {
             }
             var config = response.data;
             
-            var sel = config.filter(e => e.id === arg.id);
+            var sel = config.filter(e => e.id === args.id);
             if(!sel || sel.length <1){
                 cb({error:1,message:"configuration not found"});
                 return;
@@ -67,21 +68,21 @@ const  fo = () => {
         })
         
     }
-    const updateConfig = (arg,cb) =>{
+    const updateConfig = (args,cb) =>{
         loadAllConfig((response) =>{
             if(response.error){
                 cb({error:1,message:"cannot read configuration.json"});
                 return;
             }
             var config = response.data;
-            var sel = config.filter(e => e.id === arg.id);
+            var sel = config.filter(e => e.id === args.id);
             if(!sel || sel.length <1){
                 cb({error:1,message:"configuration not found"});
                 return;
             }
             var pick = sel[0];
             config.splice(config.indexOf(pick),1);
-            config.push(arg);
+            config.push(args);
             var json = JSON.stringify(config);
             fs.writeFile(fpath, json,(err)=>{
                 if(err){
@@ -92,14 +93,14 @@ const  fo = () => {
             });
         })
     }
-    const removeConfig = (arg,cb)=>{
+    const removeConfig = (args,cb)=>{
         loadAllConfig((response) =>{
             if(response.error){
                 cb(response);
                 return;
             }
             var config = response.data;
-            var sel = config.filter(e => e.id === arg.id);
+            var sel = config.filter(e => e.id === args.id);
             if(!sel || sel.length <1){
                 cb({error:1,message:"configuration not found"});
                 return;
@@ -115,6 +116,27 @@ const  fo = () => {
                 cb({error:0,message:"updated",data:config});
             });
         })
+    }
+    const saveToFile =(args,cb)=>{
+        fs.writeFile(args.path, args.data,(err)=>{
+            if(err){
+                cb({error:1,message:JSON.stringify(err)});
+                return;
+            }
+            cb({error:0,message:"File Saved"});
+        });
+    }
+    const readFile = (fpath,cb)=>{
+        
+        fs.readFile(fpath, 'utf8', function (err, data) {
+            if (err){
+                
+                cb({error:1,message:JSON.stringify(err)});
+                return;
+            }
+            
+            cb({error:0,message:"success",data:data});
+        });
     }
     return {
         removeConfig:removeConfig,
@@ -122,6 +144,8 @@ const  fo = () => {
         loadConfig:loadConfig,
         saveConfig:saveConfig,
         loadAllConfig:loadAllConfig,
+        saveToFile:saveToFile,
+        readFile:readFile,
     }
 }
 module.exports=fo();

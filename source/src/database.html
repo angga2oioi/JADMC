@@ -15,21 +15,20 @@
         <div class="twelve columns">
           <div class="top-head">
             <ul class="breadcrumb" >
-              <li v-for="l in data.breadcrumbList" v-bind:class="l.class"><a v-bind:data-args="l.args" v-bind:data-action-click="l.init">{{l.name}}</a></li>
+              <li v-for="l in data.breadcrumbList" v-bind:class="l.class"><a v-bind:data-args="l.args" v-bind:a-onclick="l.init">{{l.name}}</a></li>
             </ul>
           </div>
           <div class="body-content">
             <div class="block-container active server">
               <div class="block-head">
-                <button class="button button-primary" data-target="#server-database" >Database</button>
-                <button class="button" data-target="#server-sql">SQL</button>
-                <button class="button" data-target="#server-export">Export</button>
-                <button class="button" data-target="#server-import">Import</button>
+                <button class="button button-primary" a-onclick="element-switchView" data-args="#server-database" >Database</button>
+                <button class="button" a-onclick="element-switchView" data-args="#server-sql">SQL</button>
+                <button class="button" a-onclick="server-importDatabase" >Import Database</button>
               </div>
               <div class="block-body">
                 <div class="block-tab active" id="server-database">
                     <div>
-                      <button class="button" data-action-click="server-createDb">Create Database</button>
+                      <button class="button" a-onclick="server-createDb">Create Database</button>
                     </div>
                     <table class="full-width" >
                         <thead>
@@ -40,9 +39,9 @@
                         </thead>
                         <tbody  >
                             <tr v-for="c in data.databaseList" >
-                                <td><a data-action-click="database-init" v-bind:data-args="c.Database">{{c.Database}}</a></td>
+                                <td><a a-onclick="database-init" v-bind:data-args="c.Database">{{c.Database}}</a></td>
                                 <td>
-                                    <button class="button small" v-bind:data-args="c.Database" data-action-click="server-dropDb" data-tooltip="Drop Database" ><i class="icon icon-minus-circled"></i></button>
+                                    <button class="button small" v-bind:data-args="c.Database" a-onclick="server-dropDb" data-tooltip="Drop Database" ><i class="icon icon-minus-circled"></i></button>
                                 </td>
                             </tr>
                         </tbody>
@@ -52,10 +51,10 @@
                   <div>
                     <div class="form">
                       <div class="form-group">
-                        <textarea name="query" class="full-width" rows="20" data-action-onkeyup="element-autoresize" placeholder="Put your query here"></textarea>
+                        <textarea name="query" class="full-width" rows="20" a-onkeyup="element-autoresize" placeholder="Put your query here"></textarea>
                       </div>
                       <div class="form-group align-right">
-                        <button class="button" data-action-click="server-sqlQuery">RUN</button>
+                        <button class="button" a-onclick="server-sqlQuery">RUN</button>
                       </div>
                     </div>
                   </div>
@@ -77,26 +76,21 @@
                       </div>
                     </div>
                   </div>
-                  <div class="block-tab" id="server-export">
-                      Export
-                    </div>
-                    <div class="block-tab" id="server-import">
-                      Import
-                    </div>
+                  
                 </div>
                 
             </div>
             <div class="block-container database">
                 <div class="block-head">
-                    <button class="button button-primary" data-target="#database-table" >Tables</button>
-                    <button class="button" data-target="#database-sql">SQL</button>
-                    <button class="button" data-target="#database-export">Export</button>
-                    <button class="button" data-target="#database-import">Import</button>
+                    <button class="button button-primary" a-onclick="element-switchView" data-args="#database-table" >Tables</button>
+                    <button class="button" a-onclick="element-switchView" data-args="#database-sql">SQL</button>
+                    <button class="button" a-onclick="element-switchView" data-args="#database-export">Export</button>
+                    <button class="button" a-onclick="database-importTable" >Import Table</button>
                 </div>
                 <div class="block-body">
                     <div class="block-tab active" id="database-table">
                         <div>
-                          <button class="button" data-action-click="database-createSchema">Create Table</button>
+                          <button class="button" a-onclick="database-createSchema">Create Table</button>
                         </div>
                         <table class="full-width" >
                             <thead>
@@ -107,10 +101,10 @@
                             </thead>
                             <tbody >
                                 <tr v-for="c in data.tableList" >
-                                    <td><a data-action-click="table-init" v-bind:data-args="c.table">{{c.table}}</a></td>
+                                    <td><a a-onclick="table-init" v-bind:data-args="c.table">{{c.table}}</a></td>
                                     <td>
-                                        <button class="button small" v-bind:data-args="c.table" data-action-click="database-truncateTable" data-tooltip="Truncate Table" ><i class="icon icon-trash"></i></button>
-                                        <button class="button small" v-bind:data-args="c.table" data-action-click="database-dropTable" data-tooltip="Drop Table"><i class="icon icon-minus-circled"></i></button>
+                                        <button class="button small" v-bind:data-args="c.table" a-onclick="database-truncateTable" data-tooltip="Truncate Table" ><i class="icon icon-trash"></i></button>
+                                        <button class="button small" v-bind:data-args="c.table" a-onclick="database-dropTable" data-tooltip="Drop Table"><i class="icon icon-minus-circled"></i></button>
                                     </td>
                                 </tr>
                             </tbody>
@@ -142,13 +136,13 @@
                                 <td>{{c.default}}</td>
                                 <td>{{c.index}}</td>
                                 <td>
-                                  <button class="button" data-action-click="database-removeSchemaColumn" v-bind:data-args="c._schemaId" data-tooltip="Remove Column"><i class="icon icon-minus-circled"></i></button>
+                                  <button class="button" a-onclick="database-removeSchemaColumn" v-bind:data-args="c._schemaId" data-tooltip="Remove Column"><i class="icon icon-minus-circled"></i></button>
                                 </td>
                               </tr>
                             </tbody>
                         </table>
                         <div v-if="data.newSchema && data.newSchema.length > 0" class="align-right">
-                            <button class="button" data-action-click="database-createTable" data-tooltip="Create Table">CREATE</button>
+                            <button class="button" a-onclick="database-createTable" data-tooltip="Create Table">CREATE</button>
                         </div>
                       </div>
                       <div class="overflow-auto border-top padding-top-10">
@@ -253,7 +247,7 @@
                           </tbody>
                         </table>
                         <div class="full-width">
-                          <button class="button" data-action-click="database-addSchemaColumn">Add Column</button>
+                          <button class="button" a-onclick="database-addSchemaColumn">Add Column</button>
                         </div>
                       </div>
                     </div>
@@ -261,10 +255,10 @@
                         <div>
                           <div class="form">
                             <div class="form-group">
-                              <textarea name="query" class="full-width" data-action-onkeyup="element-autoresize" rows="20" placeholder="Put your query here"></textarea>
+                              <textarea name="query" class="full-width" a-onkeyup="element-autoresize" rows="20" placeholder="Put your query here"></textarea>
                             </div>
                             <div class="form-group align-right">
-                              <button class="button" data-action-click="database-sqlQuery">RUN</button>
+                              <button class="button" a-onclick="database-sqlQuery">RUN</button>
                             </div>
                           </div>
                         </div>
@@ -287,18 +281,31 @@
                           </div>
                     </div>
                     <div class="block-tab" id="database-export">
-                            Export
+                      <div class=" form" >
+                        <div class="form-group">
+                          <label class="control-label">
+                              Output
+                          </label>
+                            <select  name="fileType" class="form-control" >
+                              <option selected disabled value="">Select Output Type</option>
+                              <option value="sql">SQL</option>
+                              <option value="csv">CSV</option>
+                              <option value="json">JSON</option>
+                            </select>
+                        </div>
+                        <button class="button" a-onclick="database-export">Export</button>
+                      </div>
                     </div>
-                    <div class="block-tab" id="database-import">
-                            Import
-                    </div>
+                    
                 </div>
               </div>
             <div class="block-container table">
               <div class="block-head">
-                <button class="button button-primary" data-target="#table-browse" >Browse</button>
-                <button class="button" data-target="#table-structure">Structure</button>
-                <button class="button" data-target="#table-sql">SQL</button>
+                <button class="button button-primary" a-onclick="element-switchView" data-args="#table-browse" >Browse</button>
+                <button class="button" a-onclick="element-switchView" data-args="#table-structure">Structure</button>
+                <button class="button" a-onclick="element-switchView" data-args="#table-sql">SQL</button>
+                <button class="button" a-onclick="element-switchView" data-args="#table-export">Export</button>
+                
               </div>
               <div class="block-body">
                 <div class="block-tab active" id="table-browse">
@@ -329,7 +336,7 @@
                           <tbody >
                               <tr v-for="c in data.structureTableList" >
                                  <td v-for="t in c">{{t}}</td>
-                                 <td><button class="button small" data-action-click="table-dropColumn" v-bind:data-args="c.Field" data-tooltip="Drop Column"><i class="icon icon-minus-circled"></i></button></td>
+                                 <td><button class="button small" a-onclick="table-dropColumn" v-bind:data-args="c.Field" data-tooltip="Drop Column"><i class="icon icon-minus-circled"></i></button></td>
                               </tr>
                           </tbody>
                         </table>
@@ -339,10 +346,10 @@
                     <div>
                         <div class="form">
                           <div class="form-group">
-                            <textarea name="query" class="full-width" data-action-onkeyup="element-autoresize" rows="20" placeholder="Put your query here"></textarea>
+                            <textarea name="query" class="full-width" a-onkeyup="element-autoresize" rows="20" placeholder="Put your query here"></textarea>
                           </div>
                           <div class="form-group align-right">
-                            <button class="button" data-action-click="table-sqlQuery">RUN</button>
+                            <button class="button" a-onclick="table-sqlQuery">RUN</button>
                           </div>
                         </div>
                       </div>
@@ -364,6 +371,23 @@
                           </div>
                         </div>
                 </div>
+                <div class="block-tab" id="table-export">
+                  <div class=" form" >
+                    <div class="form-group">
+                      <label class="control-label">
+                          Output
+                      </label>
+                        <select  name="fileType" class="form-control" >
+                          <option selected disabled value="">Select Output Type</option>
+                          <option value="sql">SQL</option>
+                          <option value="csv">CSV</option>
+                          <option value="json">JSON</option>
+                        </select>
+                    </div>
+                    <button class="button" a-onclick="table-export">Export</button>
+                  </div>
+                </div>
+                
               </div>
             </div>
             </div>

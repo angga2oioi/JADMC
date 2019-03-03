@@ -7,7 +7,26 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "electron ."
   },
-  "author": "angga2oioi",
+  "author": {
+    "name":"angga2oioi",
+    "email":"angga2oioi@gmail.com"
+  },
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/angga2oioi/JADMC.git"
+  },
+  "build": {
+    "appId": "net.angga2oioi.JADMC",
+    "mac": {
+      "category": "your.app.category.type"
+    }
+  },
+  "keywords": [
+    "javascript",
+    "nodejs",
+    "electronjs",
+    "mysql",
+  ],
   "license": "ISC",
   "devDependencies": {
     "electron": "^4.0.5"

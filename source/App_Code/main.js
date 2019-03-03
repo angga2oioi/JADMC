@@ -54,7 +54,7 @@ const main = () => {
                     modules.close(args);
                 }
             }catch(e){
-                console.log('error',e);
+                
             }
             arrWin.splice(arrWin.indexOf(win),1);
             win = null;

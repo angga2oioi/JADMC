@@ -1,4 +1,4 @@
-var mysql = require("mysql");
+const mysql = require("mysql");
 let pool=[];
 const db = ()=>{
     const createConnection = (args,cb)=>{
@@ -36,6 +36,16 @@ const db = ()=>{
                 cb({error:1,message:"fail to established connection"});
                 return;
             }
+            if(args.escape && args.escape.length >0){
+                conn.query(args.query,args.escape,(err,results)=>{
+                    if(err){
+                        cb({error:1,message:JSON.stringify(err)});
+                        return;
+                    }
+                    cb({error:0,message:"success",data:results});
+                })
+                return;
+            }
             conn.query(args.query,(err,results)=>{
                 if(err){
                     cb({error:1,message:JSON.stringify(err)});
@@ -53,7 +63,7 @@ const db = ()=>{
         })
     }
     const createDb =(args,cb)=>{
-        args.query="CREATE DATABASE `"+args.escape[0]+"`";
+        args.query="CREATE DATABASE IF NOT EXISTS `"+args.name+"`";
         execQuery(args,(result)=>{
             if(result.error){
                 cb(result);
@@ -91,6 +101,7 @@ const db = ()=>{
                 return;
             }
             args.query = sel;
+            
             execQuery(args,(results)=>{
                 if(results.error){
                     cb(results);
@@ -134,7 +145,9 @@ const db = ()=>{
         })
     }
     const createTable =(args,cb)=>{
+        try{
         var schema = args.table;
+        
             var query = "CREATE TABLE "+schema.name+" (";
 			for (i=0;i<schema.column.length;i++){
 				query += schema.column[i].name +" "+ schema.column[i].type;
@@ -176,6 +189,10 @@ const db = ()=>{
                 cb(result)   
             })
         })
+    }catch(e){
+        console.log(e);
+        cb({error:1,message:JSON.stringify(e)});
+    }
     }
     const dropTable = (args,cb)=>{
         args.query = "DROP TABLE "+args.tableName;
@@ -198,7 +215,6 @@ const db = ()=>{
     const browseTable = (args,cb)=>{
         args.query = "SELECT * FROM  "+args.config.table;
         execQuery(args,(result)=>{
-            
             cb(result);
         })
     }
@@ -222,6 +238,43 @@ const db = ()=>{
         }
         return;
     }
+    const insertMultiple = (args,cb)=>{
+        
+        const loopData=(idx,data,cb2)=>{
+            try{
+                if(idx >=data.length){
+                    cb2({error:0,message:"success"});
+                    return;
+                }
+                var sel = data[idx];
+                var insertquery="(";
+                var insertquery2="(";
+                var escape =[];
+                for (var attrname in sel) { 
+                    insertquery += '`'+attrname+'`,';
+                    insertquery2 += "?,";
+                    escape.push(sel[attrname]);				
+                }
+                insertquery = insertquery.slice(0, - 1) + ")";
+                insertquery2 = insertquery2.slice(0, - 1) + ")";
+                args.query = "INSERT INTO "+args.table+" "+insertquery+" VALUES "+insertquery2;
+                args.escape = escape;	
+                execQuery(args,(results)=>{
+                    if(results.error){
+                        cb(results);
+                        return;
+                    }
+                    loopData(idx+1,data,cb2);
+                })
+            }catch(e){
+                cb({error:1,message:JSON.stringify(e)});
+            }
+        }
+        loopData(0,args.data,(results)=>{
+            cb(results);
+        })
+
+    }
     return{
         listDb:listDb,
         createDb:createDb,
@@ -235,6 +288,7 @@ const db = ()=>{
         structureTable:structureTable,
         dropColumn:dropColumn,
         close:close,
+        insertMultiple:insertMultiple,
     }
 }
 module.exports=db();
