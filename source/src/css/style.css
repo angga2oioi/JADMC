@@ -67,7 +67,7 @@ textarea {
 .form-group{
     margin-bottom:10px;
 }
-a[data-action-click]{
+a[a-onclick]{
     cursor:pointer;
 }
 .form-control{
@@ -90,15 +90,24 @@ a[data-action-click]{
 .border-top{
     border-top:1px solid black;
 }
+.border-all{
+    border:1px solid black;
+}
 .padding-top-10{
     padding-top:10px
 }
-[data-tooltip] {
+.padding-10{
+    padding:10px;
+}
+.margin-top-10{
+    margin-top:10px;
+}
+[a-tooltip] {
     position: relative;
     display: inline-block;
 }
   
-[data-tooltip] .tooltiptext {
+[a-tooltip] .tooltiptext {
     visibility: hidden;
     background-color: #555;
     color: #fff;
@@ -110,12 +119,11 @@ a[data-action-click]{
     z-index: 1;
     bottom: 125%;
     left: 50%;
-    margin-left: -60px;
-  
+    transform: translateX(-50%);
     opacity: 0;
     transition: opacity 0.3s;
 }
-[data-tooltip] .tooltiptext::after {
+[a-tooltip] .tooltiptext::after {
     content: "";
     position: absolute;
     top: 100%;
@@ -126,7 +134,7 @@ a[data-action-click]{
     border-color: #555 transparent transparent transparent;
 }
   
-[data-tooltip]:hover .tooltiptext {
+[a-tooltip]:hover .tooltiptext {
     visibility: visible;
     opacity: 1;
   }

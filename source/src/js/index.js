@@ -2,11 +2,9 @@ const { ipcRenderer } = require('electron');
 const {dialog} = require('electron').remote;
 const remote = require('electron').remote;
 const prompt = require('electron-prompt');
-let vm;
 document.addEventListener('DOMContentLoaded',()=>{ 
     JADMC.init();
 }, false);
-
 
 let JADMC={
     init:()=>{
@@ -16,12 +14,39 @@ let JADMC={
             data:{
                 componentKey:0,
                 data:{
-                    activeConfig:{}
+                    activeConfig:{},
+                    browseOffset:0
                 }
             },
             methods: {
                 forceRerender() {
                   this.componentKey += 1;  
+                },
+                saveData(e){
+                    let temp = e.getAttribute("data-args").split("|");
+                    let rawData = vm.data[temp[1]][temp[2]];
+                    let fType = temp[0];
+                    dialog.showSaveDialog({type: 'info',defaultPath:temp[1],message: 'Save Location'},(filePath)=>{
+                        if(!filePath){
+                            return;
+                        }
+                        JADMC.emit({
+                            module:"exporter",
+                            function:"rawData",
+                            arg:{
+                                fileType:fType,
+                                filePath:filePath,
+                                rawData:rawData
+                            }
+                        },(response)=>{
+                            if(!response){
+                                alert("fail to get response");
+                                return;
+                            }
+                            alert(response.message);
+                        });
+                        
+                    }); 
                 },
             },
             mounted: function () {
@@ -35,6 +60,7 @@ let JADMC={
                 })
               }
         });
+        JADMC.vm = vm;
         var customArgument = remote.getCurrentWindow().customArgument;
         if(customArgument){
             JADMC.execute(customArgument);
@@ -65,11 +91,12 @@ let JADMC={
     },
     element:{
         init:function(){
-            document.querySelectorAll("[data-tooltip]").forEach((e)=>{
+            document.querySelectorAll("[a-tooltip]").forEach((e)=>{
+                
                 var toolSpan = e.getElementsByClassName("tooltiptext")[0];
                 if(!toolSpan){
                     var x = document.createElement("span");                        
-                    var t = document.createTextNode(e.getAttribute("data-tooltip"));
+                    var t = document.createTextNode(e.getAttribute("a-tooltip"));
                     x.classList.add("tooltiptext");
                     x.appendChild(t);
                     e.appendChild(x);                 
@@ -130,7 +157,7 @@ let JADMC={
             JADMC.connection.loadAllConfig();
         },
         loadAllConfig:()=>{
-            JADMC.emit({module:"fo",function:"loadAllConfig"},(response)=>{
+            JADMC.emit({module:"connection",function:"loadAllConfig"},(response)=>{
                 if(!response){
                     alert("fail to get response")
                     return;
@@ -150,7 +177,7 @@ let JADMC={
             const dialogOptions = {type: 'info', buttons: ['OK', 'Cancel'], message: 'Remove it?'}
             dialog.showMessageBox(dialogOptions,(r)=>{
                 if(r===0){
-                    JADMC.emit({module:"fo",function:"removeConfig",arg:{id:id}},(response)=>{
+                    JADMC.emit({module:"connection",function:"removeConfig",arg:{id:id}},(response)=>{
                         if(response.error){
                             alert(response.message);
                             return;
@@ -200,7 +227,7 @@ let JADMC={
                     return;
                 }
                 vm.data.activeConfig.configName = configName;
-                JADMC.emit({module:"fo",function:"saveConfig",arg:vm.data.activeConfig},(response)=>{
+                JADMC.emit({module:"connection",function:"saveConfig",arg:vm.data.activeConfig},(response)=>{
                    
                     if(response.error){
                         alert(response.message);
@@ -228,7 +255,7 @@ let JADMC={
         },
         
         loadConfig:(args)=>{
-            JADMC.emit({module:"fo",function:"loadConfig",arg:args},(response)=>{
+            JADMC.emit({module:"connection",function:"loadConfig",arg:args},(response)=>{
                 if(!response){
                     alert("fail to get response")
                     return;
@@ -241,7 +268,7 @@ let JADMC={
             })
         },
         updateConfig:()=>{
-            JADMC.emit({module:"fo",function:"updateConfig",arg:vm.data.activeConfig},(response)=>{
+            JADMC.emit({module:"connection",function:"updateConfig",arg:vm.data.activeConfig},(response)=>{
                 if(response.error){
                     alert(response.message);
                     return;
@@ -251,7 +278,7 @@ let JADMC={
         },
         connectNow:(el)=>{
             var id = el.getAttribute('data-args');
-            JADMC.emit({module:"fo",function:"loadConfig",arg:{id:id}},(response)=>{
+            JADMC.emit({module:"connection",function:"loadConfig",arg:{id:id}},(response)=>{
                 if(!response){
                     alert("fail to get response")
                     return;
@@ -430,7 +457,12 @@ let JADMC={
                 alert("no active configuration");
                 return;
             }
-            dialog.showOpenDialog({type: 'info',message: 'Open Location'},(filePath)=>{
+            dialog.showOpenDialog({type: 'info',filters:[
+                {
+                    "name": "Supported Files",
+                    "extensions": ["json"]
+                },
+            ],message: 'Open Location'},(filePath)=>{
                 if(!filePath){
                     return;
                 }
@@ -696,7 +728,7 @@ let JADMC={
                         return;
                     }
                     JADMC.database.listTable();
-                    document.querySelectorAll("[data-target='#database-table']")[0].click();
+                    
                 })
             })
             
@@ -739,7 +771,12 @@ let JADMC={
                 alert("no active configuration");
                 return;
             }
-            dialog.showOpenDialog({type: 'info',message: 'Open Location'},(filePath)=>{
+            dialog.showOpenDialog({type: 'info',filters:[
+                {
+                    "name": "Supported Files",
+                    "extensions": ["json","sql"]
+                },
+            ],message: 'Open Location'},(filePath)=>{
                 if(!filePath){
                     return;
                 }
@@ -792,6 +829,7 @@ let JADMC={
             ]
             document.title = "JADMC | " + vm.data.activeConfig.host + " | " +vm.data.activeConfig.database + " | " + vm.data.activeConfig.table;
             vm.$set(vm.data, 'breadcrumbList', breadcrumbList);
+            vm.$set(vm.data, 'browseOffset', 0);
             JADMC.table.browse();
             JADMC.table.listStructure();
         },
@@ -816,6 +854,65 @@ let JADMC={
                     alert(response.message)
                     return;
                 }
+                
+                vm.$set(vm.data, 'browseOffset', response.offset);
+                vm.$set(vm.data, 'browseTableList', response.data);
+            })
+            return;
+        },
+        browsePrev:()=>{
+            var config = vm.data.activeConfig;
+            if(!config || typeof config !="object"){
+                alert("no active configuration");
+                return;
+            }
+            
+            console.log(vm.data.browseOffset);
+            JADMC.emit({
+                module:config.network,
+                function:"browseTable",
+                arg:{
+                    config:config,
+                    offset:(vm.data.browseOffset -50 < 0 ? 0 :vm.data.browseOffset -50 )
+                }
+            },(response)=>{
+                if(!response){
+                    alert("fail to get response")
+                    return;
+                }
+                if(response.error){
+                    alert(response.message)
+                    return;
+                }
+                
+                vm.$set(vm.data, 'browseOffset', response.offset);
+                vm.$set(vm.data, 'browseTableList', response.data);
+            })
+            return;
+        },
+        browseNext:()=>{
+            var config = vm.data.activeConfig;
+            if(!config || typeof config !="object"){
+                alert("no active configuration");
+                return;
+            }
+            JADMC.emit({
+                module:config.network,
+                function:"browseTable",
+                arg:{
+                    config:config,
+                    offset:vm.data.browseOffset
+                }
+            },(response)=>{
+                if(!response){
+                    alert("fail to get response")
+                    return;
+                }
+                if(response.error){
+                    alert(response.message)
+                    return;
+                }
+                vm.$set(vm.data, 'browseOffset', response.offset);
                 vm.$set(vm.data, 'browseTableList', response.data);
             })
             return;
@@ -904,6 +1001,90 @@ let JADMC={
                     })
                     return;
                 }
+            })
+        },
+        addColumn:()=>{
+            var c = document.getElementById("table-structure-add").parentElement.children;
+            for(var i = 0 ;i < c.length ; i++){
+                c[i].classList.remove("active");
+            }
+            document.getElementById("table-structure-add").classList.add("active");
+            vm.$set(vm.data, 'newColumn', []);
+        },
+        removeNewColumn:()=>{
+            var schemaId=obj.getAttribute("data-args");
+            var currentColumn = vm.data.newColumn;
+            var sel = currentColumn.filter(e => e._schemaId === schemaId);
+            if(!sel || sel.length <1){
+                return;
+            }
+            var pick = sel[0];
+
+            var idx = currentColumn.indexOf(pick);
+            currentColumn.splice(idx,1);
+            vm.$set(vm.data, 'newColumn', currentColumn);
+        },
+        addnewColumn:()=>{
+            var formData={};
+            var d = document.getElementById("table-column-form").querySelectorAll("[name]")
+            for(var i = 0;i<d.length ; i++){
+                var name = d[i].getAttribute("name");
+                if (d[i].type && d[i].type === 'checkbox') {
+                    formData[name] = d[i].checked;
+                }else{
+                    formData[name] = d[i].value;
+                }
+                
+            }
+            if(!formData.name || formData.name ==="" || !formData.type || formData.type===""){
+                return;
+            }
+            formData._schemaId = new Date().getTime().toString();
+            var newColumn = vm.data.newColumn;
+
+            newColumn.push(formData);
+            vm.$set(vm.data, 'newColumn', newColumn);
+
+            d = document.getElementById("table-column-form").querySelectorAll("[name]")
+            for(var i = 0;i<d.length ; i++){
+                var name = d[i].getAttribute("name");
+                if (d[i].type && d[i].type === 'checkbox') {
+                    d[i].checked=false;
+                }else{
+                    d[i].value="";
+                }
+            }
+        },
+        submitColumn:()=>{
+            var config = vm.data.activeConfig;
+            if(!config || typeof config !="object"){
+                alert("no active configuration");
+                return;
+            }
+            JADMC.emit({
+                module:config.network,
+                function:"createColumn",
+                arg:{
+                    config:config,
+                    column:vm.data.newColumn,
+                }
+            },(response)=>{
+                if(!response){
+                    alert("fail to get response")
+                    return;
+                }
+                if(response.error){
+                    alert(response.message)
+                    return;
+                }
+                var c = document.getElementById("table-structure").parentElement.children;
+                for(var i = 0 ;i < c.length ; i++){
+                    c[i].classList.remove("active");
+                }
+                document.getElementById("table-structure").classList.add("active");
+                
+                JADMC.table.browse();
+                JADMC.table.listStructure();
             })
         },
         export:()=>{

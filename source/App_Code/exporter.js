@@ -1,5 +1,6 @@
-const fo = require("./fo.js");
+const fs = require("fs");
 const main = require("./main");
+const Excel = require('exceljs');
 const exporter = ()=>{
     
     const parseDatabaseToJSON=(args,cb)=>{
@@ -64,7 +65,7 @@ const exporter = ()=>{
                 args.config.table = tbl[idx].table;
                 msgParam.message="List data from " + args.config.table;
                 main.emit(msgParam);
-                
+                args.noLimit = true;
                 mod.browseTable(args,(results)=>{
                     if(results.error){
                         cb(results);
@@ -92,25 +93,140 @@ const exporter = ()=>{
                     return;
                 }
                 params.table = rv;
-                if(fType==="json"){
-                    parseDatabaseToJSON(params,(results)=>{
-                        if(results.error){
-                            cb(results);
-                            return;
-                        }
+                parseDatabaseToJSON(params,(results)=>{
+                    if(results.error){
+                        cb(results);
+                        return;
+                    }
+                    if(fType==="json"){
                         results.data.network = args.config.network;
                         let jsonString = JSON.stringify(results.data);
                         fPath += "." + fType;
-                        fo.saveToFile({data:jsonString,path:fPath},(response)=>{
-                            cb(response);
+                        writeToFile(fpath,jsonString,(results)=>{
+                            cb(results);
                         })
-                    })
-                    return;
-                }
-                cb({error:1,message:"invalid file type " + fType});
-                
+                        return;
+                    }
+                    if(fType==="sql"){
+                        mod.parseDatabaseJSONtoSQL(results.data,(results)=>{
+                            if(results.error){
+                                cb(results);
+                                return;
+                            }
+                            fPath += "." + fType;
+                            writeToFile(fPath,results.data,(results)=>{
+                                cb(results);
+                            })
+                        })
+                        return;
+                    }
+                    if(fType==="xlsx"){
+                        let workbook = new Excel.Workbook();
+                        const loopxlsx = (wb,arr,cb2)=>{
+                            if(!arr || arr.length < 1){
+                                cb2(wb);
+                                return;
+                            }
+                            let sel= arr.shift();
+                            parseTableJSONToXLSX(wb,sel,(results)=>{
+                                if(results.error){
+                                    cb(results);
+                                    return;
+                                }
+                                wb = results.data;
+                                loopxlsx(wb,arr,cb2);
+                            })
+                        }
+                        loopxlsx(workbook,results.data.table,(wb)=>{
+                            fPath += "." + fType;
+                            wb.xlsx.writeFile(fPath).then(function() {
+								cb({error:false,message:"Saved"});
+							});
+                        })
+                        return;
+                    }
+                    cb({error:1,message:"invalid file type: " + fType});
+                })
             })
             
+        })
+    }
+    
+    const table = (args,cb)=>{
+        
+        var fType = args.fileType;
+        var fPath = args.filePath;
+        var mod = require("./"+args.config.network);
+        var params = {
+            name:args.config.table,
+        }
+        let msgParam={
+            id:args.winId,
+            channel:'loading-notif',
+        }
+        msgParam.message="List data from " + params.name;
+        main.emit(msgParam);
+        args.noLimit = true;
+        mod.browseTable(args,(results)=>{
+            if(results.error){
+                cb(results);
+                return;
+            }
+            params.data = results.data;
+            msgParam.message="List column" + params.name;
+            main.emit(msgParam);
+           
+            mod.structureTable(args,(results)=>{
+                if(results.error){
+                    cb(results);
+                    return;
+                }
+                params.column = results.data;
+                parseTableToJSON(params,(results)=>{
+                    if(results.error){
+                        cb(results);
+                        return;
+                    }
+                    if(fType==="json"){
+                        results.data.network = args.config.network;
+                        let jsonString = JSON.stringify(results.data);
+                        fPath += "." + fType;
+                        writeToFile(fPath,jsonString,(results)=>{
+                            cb(results);
+                        })
+                        return;
+                    }
+                    if(fType==="sql"){
+                        mod.parseTableJSONToSQL(results.data,(results)=>{
+                            if(results.error){
+                                cb(results);
+                                return;
+                            }
+                            fPath += "." + fType;
+                            writeToFile(fPath,results.data,(results)=>{
+                                cb(results);
+                            })
+                        })
+                        return;
+                    }
+                    if(fType==="xlsx"){
+                        let workbook = new Excel.Workbook();
+                        parseTableJSONToXLSX(workbook,results.data,(results)=>{
+                            if(results.error){
+                                cb(results);
+                                return;
+                            }
+                            fPath += "." + fType;
+                            results.data.xlsx.writeFile(fPath).then(function() {
+								cb({error:false,message:"Saved"});
+							});
+                        })
+                        return;
+                    }
+                    
+                    cb({error:1,message:"invalid file type: " + fType});
+                })
+            })
         })
     }
     const parseTableToJSON = (args,cb)=>{
@@ -140,61 +256,82 @@ const exporter = ()=>{
             return;
         }
     }
-    const table = (args,cb)=>{
-        
-        var fType = args.fileType;
-        var fPath = args.filePath;
-        var mod = require("./"+args.config.network);
-        var params = {
-            name:args.config.table,
+    const parseTableJSONToXLSX = (wb,args,cb)=>{
+        try{
+            let ws = wb.addWorksheet(args.name);
+            let cols = 65;
+            args.column.forEach((c)=>{
+                ws.getCell(String.fromCharCode(cols) + '1').value = c.name;
+                cols++;
+            });
+            let rows = 2;
+            args.data.forEach((v)=>{
+                cols=65;
+                for(var attr in v){
+                    ws.getCell(String.fromCharCode(cols) + rows).value = v[attr];
+                    cols++;
+                }
+                rows++;
+            });
+            ws.state = 'visible';
+            cb({error:0,message:"success",data:wb});
+        }catch(e){
+            cb({error:1,message:JSON.stringify(e)})
         }
-        let msgParam={
-            id:args.winId,
-            channel:'loading-notif',
-        }
-        msgParam.message="List data from " + params.name;
-        main.emit(msgParam);
+
+    }
+    const writeToFile=(fPath,data,cb)=>{
         
-        mod.browseTable(args,(results)=>{
-            if(results.error){
-                cb(results);
+        fs.writeFile(fPath,data,(err,response)=>{
+            if (err){
+                cb({error:1,message:JSON.stringify(err)});
                 return;
             }
-            params.data = results.data;
-            msgParam.message="List column" + params.name;
-            main.emit(msgParam);
-           
-            mod.structureTable(args,(results)=>{
-                if(results.error){
-                    cb(results);
-                    return;
-                }
-                params.column = results.data;
-                if(fType==="json"){
-                    parseTableToJSON(params,(results)=>{
-                        if(results.error){
-                            cb(results);
-                            return;
-                        }
-                        results.data.network = args.config.network;
-                        let jsonString = JSON.stringify(results.data);
-                        fPath += "." + fType;
-                        
-                        fo.saveToFile({data:jsonString,path:fPath},(response)=>{
-                            cb(response);
-                        })
-                    })
-                    return;
-                }
-                cb({error:1,message:"invalid file type" + fType});
-
-            })
+            cb({error:0,message:"success",data:response});
         })
+    }
+    const rawData =(args,cb)=>{
+        var fType = args.fileType;
+        var fPath = args.filePath;
+        if(fType==="json"){
+            let jsonString = JSON.stringify(args.rawData);
+            fPath += "." + fType;
+            writeToFile(fPath,jsonString,(results)=>{
+                cb(results);
+            })
+            return;
+        }
+        if(fType=="xlsx"){
+            let wb = new Excel.Workbook();
+            let ws = wb.addWorksheet("exported data");
+            let cols = 65;
+            for(var attr in args.rawData[0]){
+                ws.getCell(String.fromCharCode(cols) + '1').value = attr;
+                cols++;
+            }
+            let rows = 2;
+            args.rawData.forEach((v)=>{
+                cols=65;
+                for(var attr in v){
+                    ws.getCell(String.fromCharCode(cols) + rows).value = v[attr];
+                    cols++;
+                }
+                rows++;
+            });
+            ws.state = 'visible';
+            fPath += "." + fType;
+            wb.xlsx.writeFile(fPath).then(function() {
+                cb({error:false,message:"Saved"});
+            });
+            return;
+        }
+        cb({error:1,message:"invalid file type: " + fType});
 
     }
     return{
         table:table,
-        database:database
+        database:database,
+        rawData:rawData
     }
 }
 module.exports=exporter();

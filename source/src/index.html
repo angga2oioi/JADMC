@@ -30,9 +30,9 @@
                                 <td>{{c.host}}:{{c.port}}</td>
                                 <td>{{c.network}}</td>
                                 <td>
-                                    <button class="button small" v-bind:data-args="c.id" a-onclick="connection-connectNow"  data-tooltip="Connect"><i class="icon icon-database"></i></button>
-                                    <button class="button small" v-bind:data-args="c.id" a-onclick="connection-editConnectionWindow"  data-tooltip="Edit Connection" ><i class="icon icon-pencil"></i></button>
-                                    <button class="button small" v-bind:data-args="c.id" a-onclick="connection-removeConfig"  data-tooltip="Remove Connection"><i class="icon icon-trash"></i></button>
+                                    <button class="button small" v-bind:data-args="c.id" a-onclick="connection-connectNow"  a-tooltip="Connect"><i class="icon icon-database"></i></button>
+                                    <button class="button small" v-bind:data-args="c.id" a-onclick="connection-editConnectionWindow"  a-tooltip="Edit Connection" ><i class="icon icon-pencil"></i></button>
+                                    <button class="button small" v-bind:data-args="c.id" a-onclick="connection-removeConfig"  a-tooltip="Remove Connection"><i class="icon icon-trash"></i></button>
                                 </td>
                             </tr>
                         </tbody>

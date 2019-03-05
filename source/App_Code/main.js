@@ -1,8 +1,9 @@
 const { app, BrowserWindow } = require('electron');
 const { ipcMain } = require('electron')
+const path = require("path");
 
 
-var viewDir = "src/";
+var viewDir = "source/src/";
 var arrWin=[];
 const main = () => {
     const init = () => {
@@ -42,7 +43,8 @@ const main = () => {
             height: 600, 
             webPreferences: {
                 nodeIntegration: true,
-            }
+            },
+            icon: path.join(process.cwd(), 'src/img/icon.png')
         });
         let fpath = viewDir + args.html;
         win.loadFile(fpath)
@@ -73,6 +75,7 @@ const main = () => {
             var modules  = require("./" + args.module);
             modules[args.function](args.arg,cb);
         }catch(e){
+            console.log("./" + args.module);
             cb({error:1,message:JSON.stringify(e)});
         }
     }

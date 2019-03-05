@@ -2,18 +2,18 @@
   "name": "jadmc",
   "version": "1.0.0",
   "description": "just another database management client",
-  "main": "index.js",
+  "main": "source/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "electron ."
   },
   "author": {
-    "name":"angga2oioi",
-    "email":"angga2oioi@gmail.com"
+    "name": "angga2oioi",
+    "email": "angga2oioi@gmail.com"
   },
   "repository": {
-    "type" : "git",
-    "url" : "https://github.com/angga2oioi/JADMC.git"
+    "type": "git",
+    "url": "https://github.com/angga2oioi/JADMC.git"
   },
   "build": {
     "appId": "net.angga2oioi.JADMC",
@@ -33,6 +33,8 @@
   },
   "dependencies": {
     "electron-prompt": "^1.3.0",
+    "exceljs": "^1.7.0",
+    "moment": "^2.24.0",
     "mysql": "^2.16.0"
   }
 }
