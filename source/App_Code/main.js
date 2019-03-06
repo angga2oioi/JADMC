@@ -3,7 +3,7 @@ const { ipcMain } = require('electron')
 const path = require("path");
 
 
-var viewDir = "source/src/";
+var viewDir = "src/";
 var arrWin=[];
 const main = () => {
     const init = () => {
