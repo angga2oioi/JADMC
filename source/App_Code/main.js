@@ -30,6 +30,9 @@ const main = () => {
                 });
             }
         });
+        app.on('browser-window-created',function(e,win) {
+            win.setMenu(null);
+        });
         ipcMain.on('command', (event, arg) => {
             execute(arg,(response)=>{
                 event.sender.send(arg.module + '-'+arg.function+'-reply', response);
@@ -62,6 +65,7 @@ const main = () => {
             win = null;
         });
         //win.openDevTools();
+        
         if(args.command){
             win.customArgument= args.command;
         }

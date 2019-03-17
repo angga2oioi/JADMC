@@ -72,7 +72,7 @@ a[a-onclick]{
 }
 .form-control{
     width: 100%;
-    height: 2rem;
+    height: 38px;
     border: none;
     border-bottom: 1px solid rgba(0,0,0,.26);
     border-radius:0;

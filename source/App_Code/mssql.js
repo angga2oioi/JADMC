@@ -1,12 +1,12 @@
-const mysql = require("mysql");
+const sql = require("mssql");
 const moment = require("moment");
-let pool=[];
-const db = ()=>{
+let pool = [];
+const db =()=>{
     const createConnection = (args,cb)=>{
         var config = {
-            host     : args.host,
-            port     : args.port,
-            user     : args.username,
+            server  : args.host,
+            user    : args.username,
+            port    : args.port
         }
         if(args.password && typeof args.password=="string"){
             config.password = args.password;
@@ -14,59 +14,67 @@ const db = ()=>{
         if(args.database && typeof args.database=="string"){
             config.database = args.database;
         }
+        config.options= {
+            encrypt: true
+        }
+        try{
         var sel = pool.filter((e)=>{return e.id===args.id})[0];
         if(sel){
-            cb(sel.connection)
-            return; 
-        }
-        config.multipleStatements=true;
-        var connection = mysql.createConnection(config);
-        connection.connect((err) =>{
-            if (err) {
-              cb(false);
-              return;
+            if(sel.database == args.database){
+                cb(sel.connection)
+                return;
             }
-            args.connection = connection;
+            sel.pool.close()
+            pool.splice(pool.indexOf(sel),1);
+        }
+        let conPool = new sql.ConnectionPool(config);
+        conPool.connect(err=>{
+            if(err){
+                console.log(err);
+                cb(false);
+                return;
+            }
+            args.connection = new sql.Request(conPool);
+            args.pool = conPool;
             pool.push(args);
-            cb(connection);
-        });
-        
-        return 
+            cb(args.connection);
+
+        })
+    }catch(e){
+        console.log(e);
     }
-    const execQuery = (args,cb)=>{
+    }
+    const execQuery=(args,cb)=>{
         createConnection(args.config,(conn)=>{
             if(!conn){
+                
                 cb({error:1,message:"fail to established connection"});
                 return;
             }
-            if(args.escape && args.escape.length >0){
-                conn.query(args.query,args.escape,(err,results)=>{
-                    if(err){
-                        cb({error:1,message:JSON.stringify(err)});
-                        return;
-                    }
-                    cb({error:0,message:"success",data:results});
-                })
-                return;
-            }
             conn.query(args.query,(err,results)=>{
-                
                 if(err){
                     cb({error:1,message:JSON.stringify(err)});
                     return;
                 }
-                cb({error:0,message:"success",data:results});
+                cb({error:0,message:"success",data:results.recordset});
             })
         });
     }
-    const listDb = (args,cb)=> {
-        args.query="SHOW DATABASES";
+    const listDb =(args,cb)=>{
+        args.query="SELECT name FROM master.sys.databases";
         execQuery(args,(rv)=>{
+            if(!rv.error && rv.data && rv.data.length >0){
+                let temp=[];
+                rv.data.forEach((v)=>{
+                    temp.push({Database:v.name});
+                })
+                rv.data = temp;
+            }
             cb(rv);
             
         })
     }
-    const createDb =(args,cb)=>{
+    const createDb =(args,db)=>{
         args.query="CREATE DATABASE IF NOT EXISTS `"+args.name+"`";
         execQuery(args,(result)=>{
             if(result.error){
@@ -78,7 +86,7 @@ const db = ()=>{
             })
         })
     }
-    const dropDb =(args,cb)=>{
+    const dropDb = (args,cb)=>{
         args.query="DROP DATABASE `"+args.escape[0]+"`";
         execQuery(args,(result)=>{
             if(result.error){
@@ -116,13 +124,7 @@ const db = ()=>{
         })
     }
     const listTable = (args,cb)=>{
-        args.query = "USE "+ args.config.database;
-        execQuery(args,(results)=>{
-            if(results.error){
-                cb(results);
-                return;
-            }
-            args.query = "show tables";
+        args.query = "SELECT table_name FROM information_schema.tables";
             execQuery(args,(results)=>{
                 if(results.error){
                     cb(results);
@@ -136,10 +138,8 @@ const db = ()=>{
                 })
                 cb({error:0,message:"updated",data:rv});
             })
-            
-        })
     }
-    const createTable =(args,cb)=>{
+    const createTable = (args,cb)=>{
         try{
             var schema = args.table;
         
@@ -215,36 +215,18 @@ const db = ()=>{
         })
     }
     const browseTable = (args,cb)=>{
-        if(!args.noLimit){
-            let limitStr = " LIMIT 25";
-            if(args.offset){
-                limitStr = " LIMIT "+args.offset + ",25";
-                args.offset += 25;
-            }else{
-                args.offset = 25;
-            }
-            args.query = "SELECT * FROM  "+args.config.table + limitStr;
-        }else{
-            args.query = "SELECT * FROM  "+args.config.table;
-        }
+        args.query = "SELECT * FROM  "+args.config.table;
         execQuery(args,(results)=>{
-            results.offset = args.offset
             cb(results);
         })
     }
     const structureTable = (args,cb)=>{
-        args.query = "DESCRIBE  "+args.config.table;
+        args.query = "SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '"+args.config.table+"'";
         execQuery(args,(result)=>{
             cb(result);
         })
     }
-    const dropColumn = (args,cb)=>{
-        args.query="ALTER TABLE "+args.config.table+" DROP COLUMN "+args.columnName;
-        execQuery(args,(result)=>{
-            cb(result);
-        })
-    }
-    const createColumn =(args,cb)=>{
+    const createColumn = (args,cb)=>{
         try{
             let query="";
             args.column.forEach((v)=>{
@@ -295,16 +277,21 @@ const db = ()=>{
             cb({error:1,message:JSON.stringify(e)});
         }
     }
-    const close = (args)=>{
+    const dropColumn = (args,cb)=>{
+        args.query="ALTER TABLE "+args.config.table+" DROP COLUMN "+args.columnName;
+        execQuery(args,(result)=>{
+            cb(result);
+        })
+    }
+    const close = (args,cb)=>{
         var sel = pool.filter((e)=>{return e.id===args.id})[0];
         if(sel){
-            sel.connection.end()
+            sel.pool.close();
             pool.splice(pool.indexOf(sel),1);
         }
         return;
     }
     const insertMultiple = (args,cb)=>{
-        
         const loopData=(idx,data,cb2)=>{
             try{
                 if(idx >=data.length){
@@ -338,9 +325,33 @@ const db = ()=>{
         loopData(0,args.data,(results)=>{
             cb(results);
         })
-
     }
-    const parseTableJSONToSQL =(args,cb)=>{
+    const parseDatabaseJSONtoSQL = (args,cb)=>{
+        const loopTable=(idx,queryString,tbl,cb2)=>{
+            try{
+                if(!tbl || idx >=tbl.length){
+                    cb2(queryString)
+                    return;
+                }
+                parseTableJSONToSQL(tbl[idx],(results)=>{
+                    if(results.error){
+                        callback(results);
+                        return;
+                    }
+                    queryString+=results.data;
+                    loopTable(idx+1,queryString,tbl,cb2);
+                })
+            }catch(e){
+                console.log(e);
+                callback({error:1,message:JSON.stringify(e)})
+            }
+        }
+        let query="CREATE DATABASE IF NOT EXISTS `"+args.name+"`;\n USE "+args.name + "; \n";
+        loopTable(0,query,args.table,(query)=>{
+            callback({error:0,message:"sucess",data:query});
+        });
+    }
+    const parseTableJSONToSQL = (args,cb)=>{
         try{
             let schema = {
                 name:args.name,
@@ -397,32 +408,7 @@ const db = ()=>{
             cb({error:1,message:JSON.stringify(e)});
         }
     }
-    const parseDatabaseJSONtoSQL = (args,callback)=>{
-        const loopTable=(idx,queryString,tbl,cb2)=>{
-            try{
-                if(!tbl || idx >=tbl.length){
-                    cb2(queryString)
-                    return;
-                }
-                parseTableJSONToSQL(tbl[idx],(results)=>{
-                    if(results.error){
-                        callback(results);
-                        return;
-                    }
-                    queryString+=results.data;
-                    loopTable(idx+1,queryString,tbl,cb2);
-                })
-            }catch(e){
-                console.log(e);
-                callback({error:1,message:JSON.stringify(e)})
-            }
-        }
-        let query="CREATE DATABASE IF NOT EXISTS `"+args.name+"`;\n USE "+args.name + "; \n";
-        loopTable(0,query,args.table,(query)=>{
-            callback({error:0,message:"sucess",data:query});
-        });
-    }
-    const importFromSQL=(args,data,cb)=>{
+    const importFromSQL = (args,cb)=>{
         let qArr = data.split(";");
         const loopQuery = (args,arr,cb2)=>{
             if(!arr || arr.length <1){
